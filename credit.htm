@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF8" />
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script> 
+</head>
+<body>
+
+
+tauxAssuranceEmprunteur <input type='text' id="tauxAssuranceEmprunteur" /><br>
+garantie <input type='text' id="garantie" /><br>
+fraisDossier <input type='text' id="fraisDossier" /><br>
+tauxAssuranceGroupAnnuel <input type='text' id="tauxAssuranceGroupAnnuel" /><br>
+
+<table>
+<tr>
+	<th>libelle</th>
+	<th>montant</th>
+	<th>mois</th>
+	<th>taux</th>
+	<th>mensualité</th>
+	<th>dont assurance</th>
+	<th>dont interets</th>
+</tr>
+<tr id="tplLigne" class="lignePret">
+	<td><input type='text' /></td>
+	<td><input type='text' /></td>
+	<td><input type='text' /></td>
+	<td><input type='text' /></td>
+	<td><input type='text' /></td>
+	<td><input type='text' /></td>
+	<td><input type='text' /></td>
+</tr>
+
+</table>
+<input id="newLine" type="button" value="ajouter" />
+
+<div id="coutInterets">total interets<u></u></div>
+<div id="coutAssurance">assurance<u></u></div>
+<div id="coutFrais">dossier + credit logement<u></u></div>
+<div id="coutTotal">TOTAL<u></u></div>
+
+<ol id="mens">
+</ol>
+
+<script type="text/javascript"> 
+
+
+var garantie ;
+var fraisDossier ;
+var tauxAssuranceEmprunteur ;
+var tauxAssuranceGroupAnnuel ;
+
+$(function(){$('input').keyup(calculAll);$('#newLine').click(createLine);});
+
+function calculAll()
+{
+
+tauxAssuranceEmprunteur = $('#tauxAssuranceEmprunteur').val() ;
+garantie = $('#garantie').val() ;
+fraisDossier = $('#fraisDossier').val();
+tauxAssuranceGroupAnnuel = $('#tauxAssuranceGroupAnnuel').val();
+
+var interets = 0 ;
+var maxduree = 0 ;
+var assur = 0 ;
+var mensTab = [] ;
+
+$(".lignePret").each(function(i, e){
+	element = $(e);
+	var montant = parseFloat(element.find('td:eq(1) input').val());
+	var duree = element.find('td:eq(2) input').val() ;
+	
+	
+	calculPret({
+		lib : element.find('td:eq(0) input').val(),
+		montant : montant ,
+		duree : duree ,
+		taux : element.find('td:eq(3) input').val()
+	}, element);
+	
+	for(var m = 1 ; m <= duree ; m++ ) mensTab[m] = (mensTab[m]?mensTab[m]:0) + element.find('td:eq(4) input').val() * 1 ;
+
+	interets += element.find('td:eq(6) input').val() * duree ;
+	assur += element.find('td:eq(5) input').val() * duree ;
+});
+
+$('#mens').empty();
+var periode = {start : 1 , fin : 1 , mens : mensTab[1] } ;
+
+var afficheperiode = function(periode){$('#mens').append("<li>mois " +  periode.start + " à " + periode.fin + " : " + periode.mens + " €</li>") ;} ;
+
+for( var m = 1 ; m < mensTab.length ; m++) {
+	if(periode.mens != mensTab[m])
+	{
+		afficheperiode(periode);
+		periode.mens = mensTab[m] ;
+		periode.start = m ;
+	}
+	periode.fin = m ;
+}
+afficheperiode(periode);
+
+$('#coutInterets u').text(interets);
+$('#coutAssurance u').text(assur);
+$('#coutFrais u').text(garantie * 1 + fraisDossier * 1 );
+$('#coutTotal u').text(garantie * 1 + fraisDossier * 1 + assur * 1 + interets * 1 );
+
+}
+
+function createLine()
+{
+	var line = $(".lignePret").last().clone() ;
+	$('input', line).keyup(calculAll);
+	$('table').append(line);
+}
+
+
+function calculPret(pret,element)
+{
+pret.mensualiteHA = (pret.montant * pret.taux / 12 ) / ( 1 - Math.pow(( 1 + ( pret.taux / 12 ) ), -1 * pret.duree ) ) ;
+pret.assuranceMensuel = pret.montant * tauxAssuranceGroupAnnuel / 12 * tauxAssuranceEmprunteur  ; 
+pret.mensualiteAC = pret.mensualiteHA + pret.assuranceMensuel ;
+pret.interetsMensuels = pret.mensualiteHA - ( pret.montant / pret.duree ) ;
+
+element.find('td:eq(4) input').val(Math.round(pret.mensualiteAC));
+element.find('td:eq(5) input').val(Math.round(pret.assuranceMensuel));
+element.find('td:eq(6) input').val(Math.round(pret.interetsMensuels));
+
+}
+
+</script>
+</body>
+</html>
